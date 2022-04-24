@@ -51,8 +51,8 @@ public class UserContext : IdentityDbContext<AppUser>
             .HasKey(c => new { c.UId, c.BookIsbn });
        builder.Entity<Cart>()
             .HasOne<AppUser>(c => c.User)
-            .WithMany(au => au.Carts)
-            .HasForeignKey(c => c.UId);
+            .WithOne(au => au.Cart)
+            .HasForeignKey<Cart>(c => c.UId);
         builder.Entity<Cart>()
             .HasOne<Book>(c => c.Book)
             .WithMany(b => b.Carts)
