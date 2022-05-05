@@ -17,7 +17,7 @@ public class UserContext : IdentityDbContext<AppUser>
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderDetail> OrderDetails { get; set; }
     public DbSet<Cart> Carts { get; set; }
-
+    public DbSet<Category> Categories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -33,6 +33,10 @@ public class UserContext : IdentityDbContext<AppUser>
             .HasOne<Store>(b => b.Store)
             .WithMany(st => st.Books)
             .HasForeignKey(b => b.StoreId);
+        builder.Entity<Book>()
+            .HasOne<Category>(b => b.Category)
+            .WithMany(ca => ca.Books)
+            .HasForeignKey(b => b.CategoryId);
         builder.Entity<Order>()
             .HasOne<AppUser>(o => o.User)
             .WithMany(ap=>ap.Orders)
@@ -57,8 +61,7 @@ public class UserContext : IdentityDbContext<AppUser>
             .HasOne<Book>(c => c.Book)
             .WithMany(b => b.Carts)
             .HasForeignKey(c => c.BookIsbn);
-
-
+        
 
     }
 }

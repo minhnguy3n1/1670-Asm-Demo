@@ -12,7 +12,7 @@ namespace Demo6.Models
         public string Address { get; set; }
         public string Slogan { get; set; }
         public string UId { get; set; }
-        public AppUser User { get; set; }
+        public AppUser? User { get; set; }
         public virtual ICollection<Book>? Books { get; set; }
         
     }

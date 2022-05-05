@@ -111,6 +111,7 @@ namespace Demo6.Areas.Identity.Pages.Account
             [Display(Name = "Your Role")]
             public string Role { get; set; }
 
+
         }
 
 

@@ -1,30 +1,35 @@
 ﻿#nullable disable
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Demo6.Areas.Identity.Data;
+using Demo6.Data;
+using Demo6.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Demo6.Data;
-using Demo6.Models;
 
 namespace Demo6.Controllers
 {
     public class BooksController : Controller
     {
         private readonly UserContext _context;
+        private readonly UserManager<AppUser> _userManager;
 
-        public BooksController(UserContext context)
+        public BooksController(UserContext context, UserManager<AppUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: Books
         public async Task<IActionResult> Index()
         {
-            var userContext = _context.Books.Include(b => b.Store);
-            return View(await userContext.ToListAsync());
+            AppUser thisUser = await _userManager.GetUserAsync(HttpContext.User);
+            Store thisStore = await _context.Stores.FirstOrDefaultAsync(s => s.UId == thisUser.Id);
+            var books = _context.Books
+                .Where(b => b.StoreId == thisStore.Id)
+                .Include(b => b.Store);               
+            return View(await books.ToListAsync());
         }
 
         // GET: Books/Details/5
@@ -49,24 +54,41 @@ namespace Demo6.Controllers
         // GET: Books/Create
         public IActionResult Create()
         {
-            ViewData["StoreId"] = new SelectList(_context.Stores, "Id", "Id");
+            
             return View();
         }
 
         // POST: Books/Create
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize(Roles ="Seller")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Isbn,Title,Pages,Author,Category,Price,Decs,Imgurl,StoreId")] Book book)
+        public async Task<IActionResult> Create([Bind("Isbn,Title,Pages,Author,CategoryId,Price,Decs")] Book book, IFormFile image)
         {
+            if (image != null)
+            {
+
+                //Set Key Name
+                string ImageName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+
+                //Get url To Save
+                string SavePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img", ImageName);
+
+                using (var stream = new FileStream(SavePath, FileMode.Create))
+                {
+                    image.CopyTo(stream);
+                }
+            }
             if (ModelState.IsValid)
             {
                 _context.Add(book);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["StoreId"] = new SelectList(_context.Stores, "Id", "Id", book.StoreId);
+            AppUser thisUser = await _userManager.GetUserAsync(HttpContext.User);
+            Store thisStore = await _context.Stores.FirstOrDefaultAsync(s => s.UId == thisUser.Id); 
+            book.StoreId = thisStore.Id;
             return View(book);
         }
 
@@ -92,8 +114,23 @@ namespace Demo6.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("Isbn,Title,Pages,Author,Category,Price,Decs,Imgurl,StoreId")] Book book)
+        public async Task<IActionResult> Edit(string id, [Bind("Isbn,Title,Pages,Author,Category,Price,Decs,Imgurl,StoreId")] Book book, IFormFile image)
         {
+            if (image != null)
+            {
+
+                //Set Key Name
+                string ImageName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+
+                //Get url To Save
+                string SavePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/img", ImageName);
+
+                using (var stream = new FileStream(SavePath, FileMode.Create))
+                {
+                    image.CopyTo(stream);
+                }
+                book.Imgurl = "img/" + ImageName;
+            }
             if (id != book.Isbn)
             {
                 return NotFound();
